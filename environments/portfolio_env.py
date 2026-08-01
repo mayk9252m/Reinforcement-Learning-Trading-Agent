@@ -28,3 +28,11 @@ class ContinuousPortfolioEnv(gym.Env):
             dtype=np.float32,
         )
         self.reset()
+
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
+        super().reset(seed=seed)
+        self.step_idx = self.window_size
+        self.weights = np.ones(self.n_assets) / self.n_assets
+        self.value = self.initial_cash
+        self.equity_curve = [self.value]
+        return self.obs(), {"portfolio_value": self.value}
