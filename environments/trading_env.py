@@ -4,6 +4,8 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
+from torch import seed
+
 import gymnasium as gym
 import numpy as np
 import pandas as pd
@@ -66,3 +68,23 @@ class TradingEnv(gym.Env):
         )
         self._returns_window: deque[float] = deque(maxlen=63)
         self.reset()
+
+        def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[np.ndarray, dict[str, Any]]:
+        super().reset(seed=seed)
+        self.current_step = self.window_size
+        self.cash = self.initial_cash
+        self.position = 0.0
+        self.avg_entry_price = 0.0
+        self.previous_action = 0
+        self.portfolio_value = self.initial_cash
+        self.peak_value = self.initial_cash
+        self.trades: list[Trade] = []
+        self.equity_curve: list[float] = [self.initial_cash]
+        self.actions: list[int] = [0]
+        self._returns_window.clear()
+        return self._get_observation(), self._get_info()
