@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 from typing import Any
-
 from torch import seed
 
 import gymnasium as gym
@@ -69,7 +68,7 @@ class TradingEnv(gym.Env):
         self._returns_window: deque[float] = deque(maxlen=63)
         self.reset()
 
-        def reset(
+    def reset(
         self,
         *,
         seed: int | None = None,
@@ -88,3 +87,33 @@ class TradingEnv(gym.Env):
         self.actions: list[int] = [0]
         self._returns_window.clear()
         return self._get_observation(), self._get_info()
+
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
+        action = int(action)
+        previous_value = self.portfolio_value
+        price = self._current_price()
+        transaction_cost, turnover = self._execute_trade(action, price)
+
+        self.current_step += 1
+        self.portfolio_value = self._mark_to_market(self._current_price())
+        self.peak_value = max(self.peak_value, self.portfolio_value)
+        daily_return = (self.portfolio_value - previous_value) / max(previous_value, 1e-12)
+        drawdown = self.portfolio_value / max(self.peak_value, 1e-12) - 1.0
+        self._returns_window.append(daily_return)
+
+        reward = self.reward_model(
+            daily_return=daily_return,
+            returns_window=list(self._returns_window),
+            drawdown=drawdown,
+            turnover=turnover,
+            transaction_cost=transaction_cost,
+            portfolio_value=self.portfolio_value,
+        )
+
+        self.previous_action = action
+        self.equity_curve.append(self.portfolio_value)
+        self.actions.append(action)
+
+        terminated = self.portfolio_value <= self.initial_cash * 0.2
+        truncated = self.current_step >= len(self.data) - 1
+        return self._get_observation(), reward, terminated, truncated, self._get_info()
