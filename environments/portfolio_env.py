@@ -52,4 +52,8 @@ class ContinuousPortfolioEnv(gym.Env):
         done = self.step_idx >= len(self.prices) - 1
         return self._obs(), portfolio_return, False, done, {"portfolio_value": self.value}
 
-    
+    def _obs(self):
+        window = self.prices.iloc[self.step_idx - self.window_size : self.step_idx]
+        return np.concatenate([window.pct_change().fillna(0).to_numpy().flatten(), self.weights]).astype(
+            np.float32
+        )
