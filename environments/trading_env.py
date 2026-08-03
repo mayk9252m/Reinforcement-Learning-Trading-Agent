@@ -117,3 +117,11 @@ class TradingEnv(gym.Env):
         terminated = self.portfolio_value <= self.initial_cash * 0.2
         truncated = self.current_step >= len(self.data) - 1
         return self._get_observation(), reward, terminated, truncated, self._get_info()
+
+    def render(self) -> None:
+        print(
+            f"step={self.current_step} value={self.portfolio_value:.2f}"
+            f"cash={self.cash:.2f} position={self.position:.4f} "
+        )
+
+    
