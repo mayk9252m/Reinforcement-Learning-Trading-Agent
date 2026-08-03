@@ -124,4 +124,42 @@ class TradingEnv(gym.Env):
             f"cash={self.cash:.2f} position={self.position:.4f} "
         )
 
-    
+    def close(self) -> None:
+        pass
+
+    def _execute_trade(self, action: int, price: float) -> tuple[float, float]:
+        if action == 0:
+            return 0.0, 0.0
+
+        commission = self.commission_bps / 10000
+        slippage = self.slippage_bps / 10000
+        transaction_cost = 0.0
+        turnover = 0.0
+
+        if action == 1:
+            execution_price = price * (1 + slippage)
+            target_exposure = self.portfolio_value * self.max_position_fraction
+            current_exposure = self.position * execution_price
+            trade_value = max(target_exposure - current_exposure, 0.0)
+            trade_value = min(trade_value, self.cash / (1 + commission))
+            shares = trade_value / execution_price if execution_price > 0 else 0.0
+            transaction_cost = trade_value * commission
+            if shares > 0:
+                self.cash -= trade_value + transaction_cost
+                self.position += shares
+                self.avg_entry_price = execution_price
+                turnover = trade_value / max(self.portfolio_value, 1e-12)
+                self._record_trade(action, execution_price, shares, transaction_cost)
+
+        elif action == 2 and self.position > 0:
+            execution_price = price * (1 - slippage)
+            shares = self.position
+            trade_value = shares * execution_price
+            transaction_cost = trade_value * commission
+            self.cash += trade_value - transaction_cost
+            self.position = 0.0
+            self.avg_entry_price = 0.0
+            turnover = trade_value / max(self.portfolio_value, 1e-12)
+            self._record_trade(action, execution_price, -shares, transaction_cost)
+
+        return transaction_cost, turnover
