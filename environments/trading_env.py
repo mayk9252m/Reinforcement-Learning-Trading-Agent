@@ -201,3 +201,20 @@ class TradingEnv(gym.Env):
             dtype=np.float32,
         )
         return np.concatenate([market_state, portfolio_state]).astype(np.float32)
+
+    def _get_info(self) -> dict[str, Any]:
+        return {
+            "portfolio_value": self.portfolio_value,
+            "cash": self.cash,
+            "position": self.position,
+            "drawdown": self.portfolio_value / max(self.peak_value, 1e-12) - 1.0,
+            "trades": self.trades,
+            "equity_curve": self.equity_curve,
+            "actions": self.actions,
+        }
+
+    def _current_price(self) -> float:
+        return float(self.data.iloc[self.current_step]["close"])
+
+    def _mark_to_market(self, price: float) -> float:
+        return float(self.cash + self.position * price)
