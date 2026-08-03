@@ -117,3 +117,104 @@ class TradingEnv(gym.Env):
         terminated = self.portfolio_value <= self.initial_cash * 0.2
         truncated = self.current_step >= len(self.data) - 1
         return self._get_observation(), reward, terminated, truncated, self._get_info()
+
+    def render(self) -> None:
+        print(
+            f"step={self.current_step} value={self.portfolio_value:.2f}"
+            f"cash={self.cash:.2f} position={self.position:.4f} "
+        )
+
+    def close(self) -> None:
+        pass
+
+    def _execute_trade(self, action: int, price: float) -> tuple[float, float]:
+        if action == 0:
+            return 0.0, 0.0
+
+        commission = self.commission_bps / 10000
+        slippage = self.slippage_bps / 10000
+        transaction_cost = 0.0
+        turnover = 0.0
+
+        if action == 1:
+            execution_price = price * (1 + slippage)
+            target_exposure = self.portfolio_value * self.max_position_fraction
+            current_exposure = self.position * execution_price
+            trade_value = max(target_exposure - current_exposure, 0.0)
+            trade_value = min(trade_value, self.cash / (1 + commission))
+            shares = trade_value / execution_price if execution_price > 0 else 0.0
+            transaction_cost = trade_value * commission
+            if shares > 0:
+                self.cash -= trade_value + transaction_cost
+                self.position += shares
+                self.avg_entry_price = execution_price
+                turnover = trade_value / max(self.portfolio_value, 1e-12)
+                self._record_trade(action, execution_price, shares, transaction_cost)
+
+        elif action == 2 and self.position > 0:
+            execution_price = price * (1 - slippage)
+            shares = self.position
+            trade_value = shares * execution_price
+            transaction_cost = trade_value * commission
+            self.cash += trade_value - transaction_cost
+            self.position = 0.0
+            self.avg_entry_price = 0.0
+            turnover = trade_value / max(self.portfolio_value, 1e-12)
+            self._record_trade(action, execution_price, -shares, transaction_cost)
+
+        return transaction_cost, turnover
+
+    def _record_trade(
+        self,
+        action: int,
+        price: float,
+        shares: float,
+        transaction_cost: float,
+    ) -> None:
+        self.trades.append(
+            Trade(
+                step=self.current_step,
+                action=action,
+                price=price,
+                shares=shares,
+                cash=self.cash,
+                position=self.position,
+                portfolio_value=self.portfolio_value,
+                transaction_cost=transaction_cost,
+            )
+        )
+
+    def _get_observation(self) -> np.ndarray:
+        window = self.data.iloc[self.current_step - self.window_size : self.current_step]
+        market_state = window.to_numpy(dtype=np.float32).flatten()
+        price = self._current_price()
+        unrealized_pnl = (price - self.avg_entry_price) * self.position if self.position else 0.0
+        portfolio_state = np.asarray(
+            [
+                self.portfolio_value / self.initial_cash,
+                self.cash / self.initial_cash,
+                self.position,
+                unrealized_pnl / self.initial_cash,
+                float(self.previous_action),
+                self.portfolio_value / max(self.peak_value, 1e-12) - 1.0,
+            ],
+            dtype=np.float32,
+        )
+        return np.concatenate([market_state, portfolio_state]).astype(np.float32)
+
+    def _get_info(self) -> dict[str, Any]:
+        return {
+            "portfolio_value": self.portfolio_value,
+            "cash": self.cash,
+            "position": self.position,
+            "drawdown": self.portfolio_value / max(self.peak_value, 1e-12) - 1.0,
+            "trades": self.trades,
+            "equity_curve": self.equity_curve,
+            "actions": self.actions,
+        }
+
+    def _current_price(self) -> float:
+        return float(self.data.iloc[self.current_step]["close"])
+
+    def _mark_to_market(self, price: float) -> float:
+        return float(self.cash + self.position * price)
