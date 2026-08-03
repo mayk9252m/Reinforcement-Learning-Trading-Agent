@@ -163,3 +163,23 @@ class TradingEnv(gym.Env):
             self._record_trade(action, execution_price, -shares, transaction_cost)
 
         return transaction_cost, turnover
+
+    def _record_trade(
+        self,
+        action: int,
+        price: float,
+        shares: float,
+        transaction_cost: float,
+    ) -> None:
+        self.trades.append(
+            Trade(
+                step=self.current_step,
+                action=action,
+                price=price,
+                shares=shares,
+                cash=self.cash,
+                position=self.position,
+                portfolio_value=self.portfolio_value,
+                transaction_cost=transaction_cost,
+            )
+        )
