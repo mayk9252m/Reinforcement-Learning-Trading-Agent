@@ -183,3 +183,21 @@ class TradingEnv(gym.Env):
                 transaction_cost=transaction_cost,
             )
         )
+
+    def _get_observation(self) -> np.ndarray:
+        window = self.data.iloc[self.current_step - self.window_size : self.current_step]
+        market_state = window.to_numpy(dtype=np.float32).flatten()
+        price = self._current_price()
+        unrealized_pnl = (price - self.avg_entry_price) * self.position if self.position else 0.0
+        portfolio_state = np.asarray(
+            [
+                self.portfolio_value / self.initial_cash,
+                self.cash / self.initial_cash,
+                self.position,
+                unrealized_pnl / self.initial_cash,
+                float(self.previous_action),
+                self.portfolio_value / max(self.peak_value, 1e-12) - 1.0,
+            ],
+            dtype=np.float32,
+        )
+        return np.concatenate([market_state, portfolio_state]).astype(np.float32)
