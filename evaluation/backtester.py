@@ -23,3 +23,6 @@ class BacktestResult:
 
 class Backtester:
     """Run deterministic policy evaluation over a trading environment."""
+
+    def __init__(self, env: TradingEnv) -> None:
+        self.env = env
