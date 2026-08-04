@@ -57,3 +57,4 @@ class ContinuousPortfolioEnv(gym.Env):
         return np.concatenate([window.pct_change().fillna(0).to_numpy().flatten(), self.weights]).astype(
             np.float32
         )
+    
