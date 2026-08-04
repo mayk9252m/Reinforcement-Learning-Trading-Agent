@@ -19,3 +19,7 @@ class BacktestResult:
     actions: list[int]
     trades: list
     metrics: dict[str, float]
+
+
+class Backtester:
+    """Run deterministic policy evaluation over a trading environment."""
