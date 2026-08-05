@@ -44,3 +44,8 @@ def max_drawdown(equity_curve) -> float:
     equity = pd.Series(equity_curve, dtype="float64")
     drawdown = equity / equity.cummax() - 1
     return float(drawdown.min())
+
+
+def calmar_ratio(equity_curve) -> float:
+    mdd = abs(max_drawdown(equity_curve))
+    return 0.0 if mdd == 0 else annual_return(equity_curve) / mdd
