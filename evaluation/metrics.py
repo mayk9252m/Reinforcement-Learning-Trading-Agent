@@ -49,3 +49,28 @@ def max_drawdown(equity_curve) -> float:
 def calmar_ratio(equity_curve) -> float:
     mdd = abs(max_drawdown(equity_curve))
     return 0.0 if mdd == 0 else annual_return(equity_curve) / mdd
+
+
+def trade_statistics(trades: list) -> dict[str, float]:
+    sells = [trade for trade in trades if getattr(trade, "action", None) == 2]
+    if not sells:
+        return {
+            "win_rate": 0.0,
+            "average_profit": 0.0,
+            "average_loss": 0.0,
+            "profit_factor": 0.0,
+            "expectancy": 0.0,
+        }
+    pnl = np.asarray([getattr(trade, "portfolio_value", 0.0) for trade in sells], dtype=float)
+    pnl = np.diff(np.insert(pnl, 0, pnl[0]))
+    wins = pnl[pnl > 0]
+    losses = pnl[pnl < 0]
+    gross_profit = wins.sum()
+    gross_loss = abs(losses.sum())
+    return {
+        "win_rate": float(len(wins) / len(pnl)) if len(pnl) else 0.0,
+        "average_profit": float(wins.mean()) if len(wins) else 0.0,
+        "average_loss": float(losses.mean()) if len(losses) else 0.0,
+        "profit_factor": float(gross_profit / gross_loss) if gross_loss else 0.0,
+        "expectancy": float(pnl.mean()) if len(pnl) else 0.0,
+    }
