@@ -21,3 +21,11 @@ def annual_return(equity_curve) -> float:
     equity = pd.Series(equity_curve, dtype="float64")
     years = max((len(equity) - 1) / TRADING_DAYS, 1 / TRADING_DAYS)
     return float((equity.iloc[-1] / equity.iloc[0]) ** (1 / years) - 1)
+
+
+def sharpe_ratio(returns, risk_free_rate: float = 0.0) -> float:
+    series = pd.Series(returns, dtype="float64").dropna()
+    if series.std() == 0 or series.empty:
+        return 0.0
+    excess = series - risk_free_rate / TRADING_DAYS
+    return float(np.sqrt(TRADING_DAYS) * excess.mean() / series.std())
