@@ -38,3 +38,9 @@ def sortino_ratio(returns, risk_free_rate: float = 0.0) -> float:
         return 0.0
     excess = series - risk_free_rate / TRADING_DAYS
     return float(np.sqrt(TRADING_DAYS) * excess.mean() / downside.std())
+
+
+def max_drawdown(equity_curve) -> float:
+    equity = pd.Series(equity_curve, dtype="float64")
+    drawdown = equity / equity.cummax() - 1
+    return float(drawdown.min())
