@@ -16,3 +16,8 @@ def total_return(equity_curve) -> float:
     equity = pd.Series(equity_curve, dtype="float64")
     return float(equity.iloc[-1] / equity.iloc[0] - 1)
 
+
+def annual_return(equity_curve) -> float:
+    equity = pd.Series(equity_curve, dtype="float64")
+    years = max((len(equity) - 1) / TRADING_DAYS, 1 / TRADING_DAYS)
+    return float((equity.iloc[-1] / equity.iloc[0]) ** (1 / years) - 1)
