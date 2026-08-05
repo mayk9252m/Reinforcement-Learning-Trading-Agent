@@ -74,3 +74,17 @@ def trade_statistics(trades: list) -> dict[str, float]:
         "profit_factor": float(gross_profit / gross_loss) if gross_loss else 0.0,
         "expectancy": float(pnl.mean()) if len(pnl) else 0.0,
     }
+
+
+def performance_report(equity_curve, trades: list | None = None) -> dict[str, float]:
+    returns = returns_from_equity(equity_curve)
+    report = {
+        "total_return": total_return(equity_curve),
+        "annual_return": annual_return(equity_curve),
+        "sharpe_ratio": sharpe_ratio(returns),
+        "sortino_ratio": sortino_ratio(returns),
+        "calmar_ratio": calmar_ratio(equity_curve),
+        "max_drawdown": max_drawdown(equity_curve),
+    }
+    report.update(trade_statistics(trades or []))
+    return report
