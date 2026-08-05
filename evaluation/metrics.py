@@ -29,3 +29,12 @@ def sharpe_ratio(returns, risk_free_rate: float = 0.0) -> float:
         return 0.0
     excess = series - risk_free_rate / TRADING_DAYS
     return float(np.sqrt(TRADING_DAYS) * excess.mean() / series.std())
+
+
+def sortino_ratio(returns, risk_free_rate: float = 0.0) -> float:
+    series = pd.Series(returns, dtype="float64").dropna()
+    downside = series[series < 0]
+    if downside.std() == 0 or downside.empty:
+        return 0.0
+    excess = series - risk_free_rate / TRADING_DAYS
+    return float(np.sqrt(TRADING_DAYS) * excess.mean() / downside.std())
