@@ -48,4 +48,15 @@ class MarketDataLoader:
         return datasets
 
 
-    
+def normalize_ohlcv_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    """Normalize yfinance columns and keep the core OHLCV schema."""
+    data = frame.copy()
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = [col[0] for col in data.columns]
+    rename = {column: column.lower().replace(" ", "_") for column in data.columns}
+    data = data.rename(columns=rename)
+    required = ["open", "high", "low", "close", "volume"]
+    missing = [column for column in required if column not in data.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
+    return data[required].sort_index()
