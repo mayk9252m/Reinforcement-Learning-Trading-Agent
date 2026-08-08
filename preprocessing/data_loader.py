@@ -60,3 +60,4 @@ def normalize_ohlcv_columns(frame: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
     return data[required].sort_index()
+    
