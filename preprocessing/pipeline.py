@@ -34,3 +34,14 @@ class PreprocessingPipeline:
             normalized.to_csv(self.processed_dir / f"{ticker.replace('-', '_')}.csv")
             processed[ticker] = normalized
         return processed
+
+
+def normalize_features(frame: pd.DataFrame, scaler_name: str = "standard") -> pd.DataFrame:
+    """Normalize feature columns while preserving prices for execution."""
+    data = frame.copy()
+    execution_columns = ["open", "high", "low", "close", "volume"]
+    feature_columns = [column for column in data.columns if column not in execution_columns]
+    scaler = MinMaxScaler() if scaler_name == "minmax" else StandardScaler()
+    if feature_columns:
+        data[feature_columns] = scaler.fit_transform(data[feature_columns])
+    return data
