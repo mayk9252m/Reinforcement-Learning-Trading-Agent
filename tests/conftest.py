@@ -6,11 +6,16 @@ import pandas as pd
 
 
 @pytest.fixture
-def sample_data():
-    return pd.DataFrame({
-        "open": [100, 101, 102],
-        "high": [105, 106, 107],
-        "low": [95, 96, 97],
-        "close": [102, 103, 104],
-        "volume": [1000, 1100, 1200]
-    })
+def sample_data() -> pd.DataFrame:
+    rng = np.random.default_rng(seed=42)
+    n = 120
+    returns = rng.normal(0.0008, 0.01, size=n)
+    close = 100 * np.exp(np.cumsum(returns))
+    return pd.DataFrame(
+        {
+            "open": close * (1 + rng.normal(0, 0.001, size=n)),
+            "high": close * 1.01,
+            "low": close * (1 - rng.normal(0, 0.001, size=n)),
+            "close": close,
+        }
+    )
